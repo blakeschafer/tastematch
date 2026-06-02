@@ -1,11 +1,9 @@
-import { PromoStrip } from "./PromoStrip";
 import { AppHeader } from "./AppHeader";
 import { Sidebar } from "./Sidebar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <PromoStrip />
       <AppHeader />
       <div className="grid lg:grid-cols-[220px_1fr] min-h-[calc(100dvh-90px)]">
         <Sidebar />

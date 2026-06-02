@@ -20,6 +20,8 @@ export type Budget = {
   tier: string;
 };
 
+export type DayHours = { open: string; close: string } | null; // null = closed that day
+
 export type Restaurant = {
   id: number;
   name: string;
@@ -30,6 +32,9 @@ export type Restaurant = {
   img: string;
   tags: string[];
   vibe: OutingId[];
+  neighborhood: string;
+  hours: DayHours[]; // [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+  walkIn: boolean;
 };
 
 export type FlowState = {

@@ -1,26 +1,38 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { BUDGETS, OUTINGS, RESTAURANTS } from "@/lib/data";
 import { pickThree } from "@/lib/scoring";
+import { isOpenNow } from "@/lib/hours";
 import { useFlow } from "@/components/FlowProvider";
 import { RestaurantCard } from "@/components/RestaurantCard";
+
+const MapView = dynamic(() => import("@/components/MapView").then((m) => m.MapView), { ssr: false });
 
 export default function ResultsPage() {
   const router = useRouter();
   const { state, patch } = useFlow();
   const [, force] = useState(0);
+  const [view, setView] = useState<"cards" | "map">("cards");
+  const [openNow, setOpenNow] = useState(false);
 
   useEffect(() => {
-    // First visit OR no results yet — generate.
     if (state.currentResults.length === 0) {
       const { picks, nextShown } = pickThree(state);
       patch({ currentResults: picks.map((p) => p.id), shownIds: nextShown });
     }
-    // We only want this on mount of this page session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-pick when open-now filter is toggled
+  useEffect(() => {
+    const filter = openNow ? (r: (typeof RESTAURANTS)[0]) => isOpenNow(r.hours) : undefined;
+    const { picks, nextShown } = pickThree({ ...state, shownIds: [] }, filter);
+    patch({ currentResults: picks.map((p) => p.id), shownIds: nextShown });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openNow]);
 
   const results = useMemo(
     () => state.currentResults.map((id) => RESTAURANTS.find((r) => r.id === id)!).filter(Boolean),
@@ -28,7 +40,8 @@ export default function ResultsPage() {
   );
 
   const refresh = () => {
-    const { picks, nextShown } = pickThree(state);
+    const filter = openNow ? (r: (typeof RESTAURANTS)[0]) => isOpenNow(r.hours) : undefined;
+    const { picks, nextShown } = pickThree(state, filter);
     patch({ currentResults: picks.map((p) => p.id), shownIds: nextShown });
     force((n) => n + 1);
   };
@@ -59,18 +72,54 @@ export default function ResultsPage() {
               {c}
             </span>
           ))}
+          {/* Open now toggle */}
+          <button
+            onClick={() => setOpenNow((v) => !v)}
+            className={`inline-flex items-center gap-1.5 h-[34px] px-3.5 rounded-full border text-[12px] font-medium transition-all ${
+              openNow
+                ? "bg-green-600 border-green-600 text-white"
+                : "bg-card border-line text-muted hover:text-ink"
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${openNow ? "bg-white" : "bg-muted"}`} />
+            Open now
+          </button>
+
+          {/* View toggle */}
+          <div className="flex items-center rounded-full border border-line bg-card p-1 gap-1">
+            <button
+              onClick={() => setView("cards")}
+              className={`h-[30px] px-3.5 rounded-full text-[12px] font-medium transition-all ${
+                view === "cards" ? "bg-ink text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              Cards
+            </button>
+            <button
+              onClick={() => setView("map")}
+              className={`h-[30px] px-3.5 rounded-full text-[12px] font-medium transition-all ${
+                view === "map" ? "bg-ink text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              Map
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-[22px] grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {results.length > 0 ? (
-          results.map((r) => <RestaurantCard key={r.id} r={r} />)
-        ) : (
-          <div className="col-span-full text-center py-14 px-5 border border-dashed border-line rounded-[18px] text-muted">
-            No restaurants matched. Loosen a filter and try again.
-          </div>
-        )}
-      </div>
+      {view === "map" ? (
+        <MapView restaurants={results} city={state.location} />
+      ) : (
+        <div className="grid gap-[22px] grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {results.length > 0 ? (
+            results.map((r) => <RestaurantCard key={r.id} r={r} />)
+          ) : (
+            <div className="col-span-full text-center py-14 px-5 border border-dashed border-line rounded-[18px] text-muted">
+              No restaurants matched. Loosen a filter and try again.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Desktop refresh row */}
       <div className="hidden sm:flex items-center justify-between gap-4 mt-10 pt-7 border-t border-line">

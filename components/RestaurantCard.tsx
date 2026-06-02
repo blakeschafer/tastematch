@@ -2,11 +2,14 @@
 
 import Image from "next/image";
 import { BUDGETS } from "@/lib/data";
+import { getHoursStatus } from "@/lib/hours";
 import type { Restaurant } from "@/lib/types";
 
 export function RestaurantCard({ r }: { r: Restaurant }) {
   const b = BUDGETS.find((x) => x.id === r.tier)!;
   const fine = r.tier === 4 || r.tags.includes("fine");
+  const { status, label: hoursLabel } = getHoursStatus(r.hours);
+  const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(r.name + " " + r.neighborhood)}`;
 
   const badges: { label: string; gold?: boolean }[] = [];
   if (fine) badges.push({ label: "⭐ Fine Dining", gold: true });
@@ -47,19 +50,46 @@ export function RestaurantCard({ r }: { r: Restaurant }) {
         </div>
         <div className="font-serif text-[26px] font-medium leading-[1.05] -tracking-[0.015em]">{r.name}</div>
         <div className="flex items-center gap-3.5 text-[13px] text-muted">
-          <span>{r.distance.toFixed(1)} mi</span>
+          <span>📍 {r.neighborhood}</span>
           <span className="w-[3px] h-[3px] rounded-full bg-muted" />
           <span>{b.sym}</span>
-          <span className="w-[3px] h-[3px] rounded-full bg-muted" />
-          <span>{b.tier}</span>
         </div>
-        <div className="mt-1.5 flex gap-2">
-          <button className="flex-1 h-[42px] rounded-full bg-ink text-white text-[13px] font-medium border border-ink transition-colors hover:bg-black">
-            Reserve
-          </button>
-          <button className="flex-1 h-[42px] rounded-full bg-card text-ink text-[13px] font-medium border border-line transition-colors hover:bg-black/[0.04]">
+        {/* Hours + walk-in row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`text-[12px] font-medium ${
+            status === "open" ? "text-green-600" :
+            status === "opening-soon" ? "text-amber-500" : "text-muted"
+          }`}>
+            {hoursLabel}
+          </span>
+          {r.walkIn && (
+            <span className="px-2 py-0.5 rounded-full bg-black/[0.05] text-[11px] text-muted tracking-wide">
+              Walk-in
+            </span>
+          )}
+          {!r.walkIn && (
+            <span className="px-2 py-0.5 rounded-full bg-black/[0.05] text-[11px] text-muted tracking-wide">
+              Reservation
+            </span>
+          )}
+        </div>
+        <div className="mt-0.5 flex gap-2">
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 h-[42px] rounded-full bg-ink text-white text-[13px] font-medium border border-ink transition-colors hover:bg-black inline-flex items-center justify-center"
+          >
+            {r.walkIn ? "Directions" : "Reserve"}
+          </a>
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 h-[42px] rounded-full bg-card text-ink text-[13px] font-medium border border-line transition-colors hover:bg-black/[0.04] inline-flex items-center justify-center"
+          >
             Map
-          </button>
+          </a>
           <button
             aria-label="Save"
             className="h-[42px] w-[42px] rounded-full bg-card text-ink border border-line transition-colors hover:bg-black/[0.04]"

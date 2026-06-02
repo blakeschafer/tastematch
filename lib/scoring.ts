@@ -28,12 +28,16 @@ export function scoreRestaurant(r: Restaurant, s: FlowState): number {
   return score;
 }
 
-export function pickThree(s: FlowState): { picks: Restaurant[]; nextShown: number[] } {
+export function pickThree(
+  s: FlowState,
+  preFilter?: (r: Restaurant) => boolean,
+): { picks: Restaurant[]; nextShown: number[] } {
   const shown = new Set(s.shownIds);
-  let pool = RESTAURANTS.filter((r) => !shown.has(r.id));
+  const base = preFilter ? RESTAURANTS.filter(preFilter) : RESTAURANTS;
+  let pool = base.filter((r) => !shown.has(r.id));
   if (pool.length < 3) {
     shown.clear();
-    pool = RESTAURANTS.slice();
+    pool = base.slice();
   }
   pool.sort((a, b) => scoreRestaurant(b, s) - scoreRestaurant(a, s));
   const picks = pool.slice(0, 3);
